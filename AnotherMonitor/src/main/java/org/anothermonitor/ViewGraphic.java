@@ -145,7 +145,10 @@ public class ViewGraphic extends TextureView {
 					else drawLineInteger((List<Integer>) l.get(n).get(C.pTPD), canvas, paint); 
 				}
 			}
-		
+
+
+		//是否显示Memory的五个参数，
+		//再判断，具体显示哪五个参数，五个参数的布尔值在ActivityMain中设置
 		if (graphicMode == C.graphicModeShowMemory) {
 			if (memUsedD)
 				drawLine(memUsed, canvas, memUsedPaint);
@@ -191,6 +194,7 @@ public class ViewGraphic extends TextureView {
 		tempVar = xLeft-xLeftTextSpace;
 		if (mThread.isInterrupted())
 			return;
+		//画图
 		canvas.drawText("100%", tempVar, yTop + 5, textPaintLegendV);
 		if (mThread.isInterrupted())
 			return;
@@ -264,7 +268,7 @@ public class ViewGraphic extends TextureView {
 	
 	
 	
-	
+	//对内存的5个参数进行画图
 	
 	private void drawLine(List<String> y, Canvas canvas, Paint paint) {
 		if(y != null && y.size()>1)
@@ -282,7 +286,7 @@ public class ViewGraphic extends TextureView {
 	
 	
 	
-	
+	//对Process中应用的数据进行画图
 	private void drawLineFloat(List<Float> y, Canvas canvas, Paint paint) {
 		if(y != null && y.size()>1)
 			for(int m=0; m < (y.size()-1) && m < intervalTotalNumber; ++m) {

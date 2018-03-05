@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--ListView列表中对应用名，应用图标，进程号，程序包名的布局文件-->
 <org.anothermonitor.LinearLayoutCustomised xmlns:android="http://schemas.android.com/apk/res/android"
 	android:id="@+id/LpBG"
     android:layout_width="match_parent"

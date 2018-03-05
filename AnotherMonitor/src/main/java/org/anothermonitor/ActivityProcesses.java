@@ -41,6 +41,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import com.jaredrummler.android.processes.AndroidProcesses;
 
 public class ActivityProcesses extends Activity {
+	private static final String TAG = "ActivityProcesses";
 	private int navigationBarHeight;
 								// List
 									// Map
@@ -48,6 +49,9 @@ public class ActivityProcesses extends Activity {
 										// C.pName, value
 	private List<Map<String, Object>> mListProcesses = new ArrayList<Map<String, Object>>(),
 									   mListSelected = new ArrayList<Map<String, Object>>();
+	//类名为“SimpleAdapter”,扩展性好，可以定义各种各样的布局，可以放Imageview，Button,	等
+	//同等类别的类还有：ArrayAdapter：仅显示数据
+	//SimpleCursorAdapter：
 	private SimpleAdapter mSA;
 	private ListView mLV;
 	private Button mBOK;
@@ -112,35 +116,50 @@ public class ActivityProcesses extends Activity {
 				for(Map<String, Object> process : mListProcesses)
 					for (Map<String, Object> selected : mListSelected)
 						if (process.get(C.pId).equals(selected.get(C.pId)))
+							//对process赋值,两层关系，第一层先是列表，然后列表中存储Map类型数值
 							process.put(C.pSelected, Boolean.TRUE);
 			} else mListSelected = new ArrayList<Map<String, Object>>();
 			
 		} else {
 			PackageManager pm = getPackageManager();
-			
+
+			//获取正在运行的processes,存储在List列表中
 			List<ActivityManager.RunningAppProcessInfo> runningAppProcesses;
+
+
 			if (Build.VERSION.SDK_INT < 22) { // http://stackoverflow.com/questions/30619349/android-5-1-1-and-above-getrunningappprocesses-returns-my-application-packag
 				runningAppProcesses = ((ActivityManager) getSystemService(ACTIVITY_SERVICE)).getRunningAppProcesses();
 			} else runningAppProcesses = AndroidProcesses.getRunningAppProcessInfo(this);
-			
+
+			Log.i(TAG,"running app processes size :"+runningAppProcesses.size());
+
 			if (runningAppProcesses != null) {
 				int pid = Process.myPid();
 				for (ActivityManager.RunningAppProcessInfo p : runningAppProcesses) {
+
+
 					if (pid != p.pid) {
 						String name = null;
 						try {
-							name = (String) pm.getApplicationLabel(pm.getApplicationInfo(p.pkgList != null && p.pkgList.length > 0 ? p.pkgList[0] : p.processName, 0));
+							//获取应用名称
+							name = (String) pm.getApplicationLabel(pm.getApplicationInfo(p.pkgList != null && p.pkgList.length > 0
+									? p.pkgList[0] : p.processName, 0));
+							Log.i(TAG,"Application name:"+name);
 						} catch (NameNotFoundException e) {
 						} catch (NotFoundException e) {
 						}
 						
 						if (name == null)
 							name = p.processName;
-						
-						mListProcesses.add(mapDataForPlacesList(false, name, String.valueOf(p.pid), p.pkgList != null && p.pkgList.length > 0 ? p.pkgList[0] : p.processName, p.processName));
+						// 将应用的名称，pid值，传入到mListProcesses中，类型为<List<Map<String,Object>>>
+						mListProcesses.add(mapDataForPlacesList(false, name, String.valueOf(p.pid), p.pkgList != null
+								&& p.pkgList.length > 0 ? p.pkgList[0] : p.processName, p.processName));
+
+						Log.i(TAG, "ListProcesser size :"+String.valueOf(mListProcesses.size()));
 					}
 				}
-				
+
+				//对应用进行排序，根据应用名从A-Z，从英文到中文
 				Collections.sort(mListProcesses, new Comparator<Map<String, Object>>(){
 					 public int compare(Map<String, Object> o1, Map<String, Object> o2){
 						 if(o1.get(C.pAppName).equals(o2.get(C.pAppName)))
@@ -210,7 +229,10 @@ public class ActivityProcesses extends Activity {
 			@Override
 			public void onClick(View v) {
 				if (mListSelected.size() != 0) {
-					setResult(1, new Intent(ActivityProcesses.this, ActivityMain.class).putExtra(C.listSelected, (Serializable) mListSelected));
+					//点击OK按钮，通过setResult返回，设置结果码，在AcitivityMain.java中进行验证，并且要调用finish()方法
+					//putExtra函数，将列表的信息传回
+					setResult(1, new Intent(ActivityProcesses.this, ActivityMain.class).
+							putExtra(C.listSelected, (Serializable) mListSelected));
 					finish();
 				} else {
 					Toast.makeText(ActivityProcesses.this, getString(R.string.w_processes_select_some_process), Toast.LENGTH_SHORT).show();
@@ -244,11 +266,11 @@ public class ActivityProcesses extends Activity {
 		if (mListSelected.size() != 0)
 			outState.putSerializable(C.listSelected, (Serializable) mListSelected);
 	}
-	
-	
-	
-	
-	
+
+
+	/**
+	 * 对列表信息进行丰富描述，继承的类为SimpleAdapter
+	 */
 	class SimpleAdapterCustomised extends SimpleAdapter {
 		public SimpleAdapterCustomised(Context context, List<? extends Map<String, ?>> data, int resource, String[] from, int[] to) {
 			super(context, data, resource, from, to);
@@ -273,17 +295,21 @@ public class ActivityProcesses extends Activity {
 			else view.setPadding(0, 0, 0, 0);
 			
 			if ((Boolean) mListProcesses.get(position).get(C.pSelected))
+				//进程列表pPackage被选中后，颜色变化
 				tag.l.setBackgroundColor(ActivityProcesses.this.getResources().getColor(R.color.bgProcessessSelected));
 			else tag.l.setBackgroundColor(Color.TRANSPARENT);
 			try {
 				if (mListProcesses.get(position).get(C.pAppName).equals(mListProcesses.get(position).get(C.pName)))
 					tag.iv.setImageDrawable(getDrawable(R.drawable.transparent_pixel));
-				else tag.iv.setImageDrawable(getPackageManager().getApplicationIcon((String) mListProcesses.get(position).get(C.pPackage)));
+				else
+					//获取应用的图标，传得参数为包名
+					tag.iv.setImageDrawable(getPackageManager().getApplicationIcon((String) mListProcesses.get(position).
+						get(C.pPackage)));
 			} catch (NameNotFoundException e) {
 			}
 			tag.tvPAppName.setText((String) mListProcesses.get(position).get(C.pAppName));
 			tag.tvPName.setText(mListProcesses.get(position).get(C.pName) + " - Pid: " + mListProcesses.get(position).get(C.pId));
-			
+			Log.i(TAG,"name:"+mListProcesses.get(position).get(C.pName)+"pid:"+mListProcesses.get(position).get(C.pId));
 			return view;
 		}
 		

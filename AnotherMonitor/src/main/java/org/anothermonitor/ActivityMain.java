@@ -57,8 +57,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import static android.content.ContentValues.TAG;
+
 public class ActivityMain extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
-	
+
+	private static final String TAGTAG = "ActivityMain";
 	private boolean cpuTotal, cpuAM,
 				memUsed, memAvailable, memFree, cached, threshold,
 				settingsShown, canvasLocked, orientationChanged;
@@ -78,6 +81,8 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 							mFormatTime = new DecimalFormat("0.#");
 	private Resources res;
 	private Button mBChooseProcess, mBMemory, mBRemoveAll;
+
+	//开关按钮
 	private ToggleButton mBHide;
 	private ViewGraphic mVG;
 	private SeekBar mSBRead;
@@ -89,37 +94,47 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 	private Intent tempIntent;
 	private Handler mHandler = new Handler(), mHandlerVG = new Handler();
 	private Thread mThread;
-	private Runnable drawRunnable = new Runnable() {
+	private Runnable drawRunnable = new Runnable() {  //渲染文本信息
 		@SuppressWarnings("unchecked")
 		@SuppressLint("NewApi")
 		@Override
 		public void run() {
+
+			//文本显示
 			mHandler.postDelayed(this, intervalUpdate);
 			if (mSR != null) { // finish() could have been called from the BroadcastReceiver
+
+
 				mHandlerVG.post(drawRunnableGraphic);
-				
+
+				//总内存，不显示百分比
 				setTextLabelCPU(null, mTVCPUTotalP, mSR.getCPUTotalP());
 				if (processesMode == C.processesModeShowCPU)
 					setTextLabelCPU(null, mTVCPUAMP, mSR.getCPUAMP());
 				else setTextLabelCPU(null, mTVCPUAMP, null, mSR.getMemoryAM());
-				
+
+				//通过，set,get方法，获取ServiceReader类中的参数值
 				setTextLabelMemory(mTVMemUsed, mTVMemUsedP, mSR.getMemUsed());
 				setTextLabelMemory(mTVMemAvailable, mTVMemAvailableP, mSR.getMemAvailable());
 				setTextLabelMemory(mTVMemFree, mTVMemFreeP, mSR.getMemFree());
 				setTextLabelMemory(mTVCached, mTVCachedP, mSR.getCached());
 				setTextLabelMemory(mTVThreshold, mTVThresholdP, mSR.getThreshold());
-				
+
+
+				//添加所选择的process
 				for (int n=0; n<mLProcessContainer.getChildCount(); ++n) {
 					LinearLayout l = (LinearLayout) mLProcessContainer.getChildAt(n);
 					setTextLabelCPUProcess(l);
 					setTextLabelMemoryProcesses(l);
 				}
 			}
+
+			Log.i(TAGTAG,"SharePrefs string :"+mPrefs.getAll());
 		}
 	}, drawRunnableGraphic = new Runnable() { // http://stackoverflow.com/questions/18856376/android-why-cant-i-create-a-handler-in-new-thread
 		@Override
-		public void run() {
-			mThread = new Thread() {
+		public void run() { //渲染图表信息
+			mThread = new Thread(	) {
 				@Override
 				public void run() {
 					Canvas canvas;
@@ -127,6 +142,7 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 						canvas = mVG.lockCanvas();
 						if (canvas != null) {
 							canvasLocked = true;
+							//画图！！
 							mVG.onDrawCustomised(canvas, mThread);
 							
 							// https://github.com/AntonioRedondo/AnotherMonitor/issues/1
@@ -166,9 +182,14 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		@SuppressLint("NewApi")
 		@Override
 		public void onServiceConnected(ComponentName className, IBinder service) {
+
+			Log.i(TAGTAG," 绑定服务的组件名称CommonpentName :"+className.toString());
+
+			//获取服务的回调信息
 			mSR = ((ServiceReader.ServiceReaderDataBinder) service).getService();
 			
 			mVG.setService(mSR);
+
 			mVG.setParameters(cpuTotal, cpuAM, memUsed, memAvailable, memFree, cached, threshold);
 			
 			setIconRecording();
@@ -177,7 +198,7 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 			
 			switchParameter(cpuTotal, mLCPUTotal);
 			switchParameter(cpuAM, mLCPUAM);
-			
+
 			switchParameter(memUsed, mLMemUsed);
 			switchParameter(memAvailable, mLMemAvailable);
 			switchParameter(memFree, mLMemFree);
@@ -265,7 +286,9 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		memFree = mPrefs.getBoolean(C.memFree, false);
 		cached = mPrefs.getBoolean(C.cached, false);
 		threshold = mPrefs.getBoolean(C.threshold, true);
-		
+
+
+
 		res = getResources();
 		sD = res.getDisplayMetrics().density;
 //		sWidth = res.getDisplayMetrics().widthPixels;
@@ -273,7 +296,9 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		sD = res.getDisplayMetrics().density;
 		orientation = res.getConfiguration().orientation;
 		statusBarHeight = res.getDimensionPixelSize(res.getIdentifier(C.sbh, C.dimen, C.android));
-		
+
+
+
 		final SeekBar mSBWidth = (SeekBar) findViewById(R.id.SBIntervalWidth);
 		if (savedInstanceState != null && !savedInstanceState.isEmpty() && savedInstanceState.getInt(C.orientation) != orientation)
 			orientationChanged = true;
@@ -283,31 +308,61 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		
 		graphicMode = mPrefs.getInt(C.graphicMode, C.graphicModeShowMemory);
 		mVG.setGraphicMode(graphicMode);
-		mBHide = (ToggleButton) findViewById(R.id.BHideMemory);
+
+
+		//Memory中hide按钮
+		//涉及到的数据有：图表模式（是否在图表中显示五条线
+		//数据更改后，立即对线程进行应用
+		//牵扯到graphicMode的函数有：SharePrefs,ViewGraphic,ToggleButton,Handler
+		mBHide = (ToggleButton) findViewById(R.id.BHideMemory);//开关按钮
 		mBHide.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				graphicMode = graphicMode == C.graphicModeShowMemory ? C.graphicModeHideMemory : C.graphicModeShowMemory;
+
 				mPrefs.edit().putInt(C.graphicMode, graphicMode).apply();
+
 				mVG.setGraphicMode(graphicMode);
+
 				mBHide.setChecked(graphicMode == C.graphicModeShowMemory ? false : true);
+
 				mHandlerVG.post(drawRunnableGraphic);
 			}
 		});
 		mBHide.setChecked(graphicMode == C.graphicModeShowMemory ? false : true);
-		
+
+
+
 		processesMode = mPrefs.getInt(C.processesMode, C.processesModeShowCPU);
 		mVG.setProcessesMode(processesMode);
+
+
+		//对Process的设置，显示"CPU Usage"/“Memory”
 		mBMemory = (Button) findViewById(R.id.BMemory);
 		mBMemory.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
+
+				//默认显示CPU,判断的当前模式都否为cpu，若为真则为0,显示Memory,若为真就显示cpu,
+				//见setText函数
 				processesMode = processesMode == C.processesModeShowCPU ? C.processesModeShowMemory : C.processesModeShowCPU;
+
+				//将process的模式赋值到C文件中的ProcessMode参数中
 				mPrefs.edit().putInt(C.processesMode, processesMode).apply();
+
 				mBMemory.setText(processesMode == 0 ? getString(R.string.w_main_memory) : getString(R.string.p_cpuusage));
+
+
+				//可能仅改变AM在图表中折线图中的显示
 				mVG.setProcessesMode(processesMode);
+
+
+				//画图的线程
 				mHandlerVG.post(drawRunnableGraphic);
+
+				//移除文本线程
 				mHandler.removeCallbacks(drawRunnable);
+				//并再次渲染
 				mHandler.post(drawRunnable);
 			}
 		});
@@ -437,7 +492,8 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		});
 		
 		mLProcessContainer = (LinearLayout) findViewById(R.id.LProcessContainer);
-		
+
+		//mLCPUTotal界面“processes”最上面一栏，只有一个监听事件，点击
 		mLCPUTotal = (LinearLayout) findViewById(R.id.LCPUTotal);
 		mLCPUTotal.setTag(C.cpuTotal);
 		mLCPUTotal.setOnClickListener(new View.OnClickListener() {
@@ -446,6 +502,7 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 				switchParameter(cpuTotal = !cpuTotal, mLCPUTotal);
 			}
 		});
+		//AnotherMonitor 信息
 		mLCPUAM = (LinearLayout) findViewById(R.id.LCPUAM);
 		mLCPUAM.setTag(C.cpuAM);
 		mLCPUAM.setOnClickListener(new View.OnClickListener() {
@@ -477,6 +534,7 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		mLMemFree.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
+				//取反
 				switchParameter(memFree = !memFree, mLMemFree);
 			}
 		});
@@ -496,7 +554,8 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 				switchParameter(threshold = !threshold, mLThreshold);
 			}
 		});
-		
+
+		//初始化变量，已用内存，可用内存，自由内存，缓存，门限，以及对应的百分比共10个控件
 		mTVCPUTotalP = (TextView) findViewById(R.id.TVCPUTotalP);
 		mTVCPUAMP = (TextView) findViewById(R.id.TVCPUAMP);
 		mTVMemoryAM = (TextView) findViewById(R.id.TVMemoryAM);
@@ -591,7 +650,8 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 //				xRight = (int) (getWidth()*0.94);
 //				yTop = (int) (getHeight()*0.1);
 //				yBottom = (int) (getHeight()*0.88);
-				lp.setMargins((int) (mVG.getWidth()*0.14), (int) (mVG.getHeight()*0.1), (int) (mVG.getWidth()*0.06), (int) (mVG.getHeight()*0.12) + navigationBarHeight);
+				lp.setMargins((int) (mVG.getWidth()*0.14), (int) (mVG.getHeight()*0.1), (int) (mVG.getWidth()*0.06),
+						(int) (mVG.getHeight()*0.12) + navigationBarHeight);
 			}
 		});
 		
@@ -600,7 +660,9 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 			@Override
 			public void onClick(View v) {
 				Intent i = new Intent(ActivityMain.this, ActivityProcesses.class);
+
 				i.putExtra(C.listSelected, (Serializable) mListSelected);
+				//可以回调ActivityProcesses中的数据，显然startActivity方法不具备这样的方法
 				startActivityForResult(i, 1);
 			}
 		});
@@ -619,7 +681,9 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 				});
 			}
 		});
-		
+
+
+		//对图表的采集时间，更新时间，图表中间距的宽度设置
 		final TextView mTVIntervalRead = (TextView) findViewById(R.id.TVIntervalRead);
 		mTVIntervalRead.setText(getString(R.string.interval_read) + " " + mFormatTime.format(intervalRead/(float)1000) + " s");
 		final TextView mTVIntervalUpdate = (TextView) findViewById(R.id.TVIntervalUpdate);
@@ -636,6 +700,7 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 			case 4000: t = 4;
 		}
 		mSBRead.setProgress(t);
+		//对Seekbar进行监听
 		mSBRead.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			@Override
 			public void onStopTrackingTouch(SeekBar seekBar) {
@@ -723,7 +788,9 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 				mTVIntervalWidth.setText(getString(R.string.interval_width) + " " + t + " dp");
 			}
 		});
-		
+
+		//对图表所在布局FrameLayout设置监听函数
+
 		mCloseSettings = (FrameLayout) findViewById(R.id.LOK);
 		mCloseSettings.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -766,31 +833,43 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 				}
 				
 				if (ActivityMain.this.intervalRead != intervalRead) {
+					//判断设置读取时间间隔，若不等，则清除图表折线。
 					mSR.getCPUTotalP().clear();
 					mSR.getCPUAMP().clear();
 					
 					if (mListSelected != null && !mListSelected.isEmpty())
+						//process 创建的局部变量，在mListSelected中遍历
 						for (Map<String, Object> process : mListSelected) {
 							process.put(C.pFinalValue, new ArrayList<Float>());
 							process.put(C.pTPD, new ArrayList<Integer>());
 						}
-					
+					//将其他5个参数一并清除
 					mSR.getMemUsed().clear();
 					mSR.getMemAvailable().clear();
 					mSR.getMemFree().clear();
 					mSR.getCached().clear();
 					mSR.getThreshold().clear();
 				}
-				
+
+				//将最新设置的读取间隔数，赋值
 				ActivityMain.this.intervalRead = intervalRead;
 				ActivityMain.this.intervalUpdate = intervalUpdate;
 				ActivityMain.this.intervalWidth = intervalWidth;
-				
+
+				//将三个参数，传给Service
 				mSR.setIntervals(intervalRead, intervalUpdate, intervalWidth);
+
 				mVG.calculateInnerVariables();
+
 				mHandlerVG.post(drawRunnableGraphic);
+
+
 				mHandler.removeCallbacks(drawRunnable);
+
+
 				mHandler.post(drawRunnable);
+
+				//将数据传到SharePref中
 				mPrefs.edit()
 						.putInt(C.intervalRead, intervalRead)
 						.putInt(C.intervalUpdate, intervalUpdate)
@@ -988,19 +1067,24 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		});
 		va.start();
 	}
-	
-	
-	
-	
-	
+
+
+	/**
+	 * switchParameter设置默认数值
+	 * process中的Total CPU
+	 * memory中的5个参数值
+	 */
 	private void switchParameter(boolean draw, LinearLayout labelRow) {
 		if (mSR == null)
 			return;
 		
 		mPrefs.edit()
+				//默认值，process信息有Total CPU usage 和AnotherMonitor
 				.putBoolean(C.cpuTotal, cpuTotal)
 				.putBoolean(C.cpuAM, cpuAM)
-				
+
+
+				//内存默认值：已用内存，可用内存，自由内存，缓存信息，门限值，无论什么情况都要显示
 				.putBoolean(C.memUsed, memUsed)
 				.putBoolean(C.memAvailable, memAvailable)
 				.putBoolean(C.memFree, memFree)
@@ -1018,7 +1102,7 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 		
 		mHandlerVG.post(drawRunnableGraphic);
 	}
-	
+
 	
 	
 	
@@ -1039,10 +1123,16 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 			l.findViewById(R.id.TVpAbsolute).setVisibility(View.INVISIBLE);
 			l.getChildAt(1).setAlpha(0.3f);
 		}
-		
+
+		//根据C.pSelected的值，来更改“开启/关闭”图标
 		if ((Boolean) process.get(C.pSelected)) {
+			//Map  类型的process保存着应用的进程
+			Log.i(TAGTAG,"process:"+process);
 			iv.setImageResource(R.drawable.icon_play);
+
+			//只要进程不为DEAD ，那么就要显示CPU利用率
 			if (process.get(C.pDead) == null)
+
 				setTextLabelCPUProcess(l);
 		} else {
 			iv.setImageResource(R.drawable.icon_pause);
@@ -1055,7 +1145,9 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 	
 	
 	
-	private void setTextLabelCPU(TextView absolute, TextView percent, List<Float> values, @SuppressWarnings("unchecked") List<Integer>... valuesInteger) {
+	private void setTextLabelCPU(TextView absolute, TextView percent, List<Float> values,
+								 @SuppressWarnings("unchecked") List<Integer>... valuesInteger) {
+		//数值来自Service组件中
 		if (valuesInteger.length == 1) {
 			percent.setText(mFormatPercent.format(valuesInteger[0].get(0) * 100 / (float) mSR.getMemTotal()) + C.percent);
 			mTVMemoryAM.setVisibility(View.VISIBLE);
@@ -1069,28 +1161,37 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 	
 	
 	
-	
+	//对values值处理，values值加上kB单位传给第一个参数，将values的值与总内存相除将再扩大一百倍，后加上百分号，变成百分制
 	private void setTextLabelMemory(TextView absolute, TextView percent, List<String> values) {
 		if (!values.isEmpty()) {
+			Log.i(TAGTAG,"value.length:"+values.size());
 			absolute.setText(mFormat.format(Integer.parseInt(values.get(0))) + C.kB);
-			percent.setText(mFormatPercent.format(Integer.parseInt(values.get(0)) * 100 / (float) mSR.getMemTotal()) + C.percent);
+			//get(0)指，获得List最前面的数值，最新数值
+			percent.setText(mFormatPercent.format(Integer.parseInt(values.get(0)) *
+					100 / (float) mSR.getMemTotal()) + C.percent);
 		}
 	}
-	
-	
-	
-	
-	
+
+
+
+
 	@SuppressWarnings("unchecked")
+	/**
+	 * 显示CPU 利用率
+	 */
 	private void setTextLabelCPUProcess(LinearLayout l) {
 		Map<String, Object> entry = (Map<String, Object>) l.getTag();
 		if (entry != null
 				&& entry.get(C.pFinalValue) != null && ((List<String>) entry.get(C.pFinalValue)).size() != 0
 				&& entry.get(C.pTPD) != null && !((List<String>) entry.get(C.pTPD)).isEmpty()
 				&& entry.get(C.pDead) == null)
-			if (processesMode == C.processesModeShowCPU)
+			if (processesMode == C.processesModeShowCPU) {
 				((TextView) l.findViewById(R.id.TVpPercentage)).setText(mFormatPercent.format(((List<String>) entry.get(C.pFinalValue)).get(0)) + C.percent);
-			else ((TextView) l.findViewById(R.id.TVpPercentage)).setText(mFormatPercent.format(((List<Integer>) entry.get(C.pTPD)).get(0) * 100 / (float) mSR.getMemTotal()) + C.percent);
+				Log.i(TAGTAG,"TextView:"+mFormatPercent.format(((List<String>) entry.get(C.pFinalValue)).get(0)) + C.percent);
+		}else {
+				((TextView) l.findViewById(R.id.TVpPercentage)).setText(mFormatPercent.format(((List<Integer>) entry.get(C.pTPD)).get(0) * 100 / (float) mSR.getMemTotal()) + C.percent);
+				Log.i(TAGTAG,"TextView:"+mFormatPercent.format(((List<Integer>) entry.get(C.pTPD)).get(0) * 100 / (float) mSR.getMemTotal()) + C.percent);
+		}
 	}
 	
 	
@@ -1166,7 +1267,7 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 	public void onActivityResult(int requestCode, int resultCode, Intent data)  {
 		if (requestCode == 1 && resultCode == 1) {
 			// List
-				// Map
+				// MaponActivityResult
 					// Integer	   C.pId
 					// String	   C.pName
 					// Integer	   C.work
@@ -1189,7 +1290,9 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 				}
 				
 				for(Map<String, Object> process : mListSelectedProv) {
+					//设置颜色！！！！！！！！！！，传参将getProcesses().size传给pColour
 					process.put(C.pColour, getColourForProcess(mSR.getProcesses() != null ? mSR.getProcesses().size() : 0));
+					Log.i(TAGTAG, "mSR.getProcesses():"+String.valueOf(mSR.getProcesses()));
 					mSR.addProcess(process);
 				}
 				
@@ -1205,17 +1308,26 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 			
 			if (mListSelectedProv == null)
 				return;
-			
+
+			//设置透明度,  数值越小越透明
 			mBRemoveAll.setAlpha(1);
 			mBRemoveAll.setVisibility(View.VISIBLE);
-			
+
+			//synchronized 为java中关键字，是一种同步锁修饰的对象有
+			//修饰代码块，方法，静态方法，类，处在synchronized作用于一个作用域时，其他访问该对象的线程将被阻塞
 			synchronized (mListSelected) {
 				for (final Map<String, Object> process : mListSelectedProv) {
 					if (process.get(C.pSelected) == null)
 						process.put(C.pSelected, Boolean.TRUE);
-					
+
+					//布局文件，为进程的形式，由 开关，应用程序的图标，应用名，Pid进程数，利用率组成
 					final LinearLayout l = (LinearLayout) getLayoutInflater().inflate(R.layout.layer_process_entry, null);
+
+					//l 添加所选择的应用进程并在布局中显示
 					l.setTag(process);
+
+					//对布局文件设置监听事件,长按监听就移除应用程序的监听，
+					// 分别在ServerReader类中调用移除进程，在所选列表中删除Map数据，在布局文件中删除
 					l.setOnLongClickListener(new View.OnLongClickListener() {
 						@Override
 						public boolean onLongClick(View v) {
@@ -1227,11 +1339,16 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 							} else return false;
 						}
 					});
+					//设置点击事件监听，点击后，进行图标的更改，以及折线图的更新
 					l.setOnClickListener(new View.OnClickListener() {
 						@Override
 						public void onClick(View v) {
+							//点击即改变状态
 							Boolean b = (Boolean) process.get(C.pSelected);
+							Log.i(TAGTAG,"b:"+b);
 							process.put(C.pSelected, !b);
+
+							// 更改“暂停/启动”以及图表的信息(统一执行)
 							switchParameterForProcess(process);
 							
 							/*Intent intent = new Intent();
@@ -1242,7 +1359,11 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 							/*// http://stackoverflow.com/questions/2780102/open-another-application-from-your-own-intent
 							Intent i;
 							PackageManager manager = getPackageManager();
-							try {
+							try {{
+			l = (LinearLayout) mLProcessContainer.getChildAt(n);
+			if (((Map<String, Object>) l.getTag()).get(C.pId).equals(process.get(C.pId)))
+				break;
+		}
 								i = manager.getLaunchIntentForPackage((String) process.get(C.pPackage));
 								if (i == null)
 									throw new PackageManager.NameNotFoundException();
@@ -1261,16 +1382,21 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 					
 					ImageView pIcon = (ImageView) l.getChildAt(1);
 					pIcon.setImageDrawable(d);
-					
+
+					//颜色的赋值语句
 					int colour = (Integer) process.get(C.pColour);
-					
+
+
+					//设置应用程序的颜色,比如浏览器"chrome"显示颜色为红色
 					TextView pName = (TextView) l.findViewById(R.id.TVpAppName);
 					pName.setText((String) process.get(C.pAppName));
 					pName.setTextColor(colour);
-					
+
+					//显示应用进程名
 					TextView pId = (TextView) l.findViewById(R.id.TVpName);
 					pId.setText("Pid: " + process.get(C.pId));
-					
+
+					//对cpu利用率的数字设置颜色
 					TextView pUsage = (TextView) l.findViewById(R.id.TVpPercentage);
 					pUsage.setTextColor(colour);
 					
@@ -1338,7 +1464,8 @@ public class ActivityMain extends Activity implements ActivityCompat.OnRequestPe
 	@Override
 	public void onStart() {
 		super.onStart();
-		bindService(new Intent(this, ServiceReader.class), mServiceConnection, 0);
+		bindService(new Intent
+					(this, ServiceReader.class), mServiceConnection, 0);
 		registerReceiver(receiverSetIconRecord, new IntentFilter(C.actionSetIconRecord));
 		registerReceiver(receiverDeadProcess, new IntentFilter(C.actionDeadProcess));
 		registerReceiver(receiverFinish, new IntentFilter(C.actionFinishActivity));

@@ -48,8 +48,9 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
-public class ServiceReader extends Service {
-	
+public class  ServiceReader extends Service {
+
+	private static final String TAG ="ServiceReader" ;
 	private boolean /*threadSuspended, */recording, firstRead = true, topRow = true;
 	private int memTotal, pId, intervalRead, intervalUpdate, intervalWidth, maxSamples = 2000;
 	private long workT, totalT, workAMT, total, totalBefore, work, workBefore, workAM, workAMBefore;
@@ -81,6 +82,8 @@ public class ServiceReader extends Service {
 			while (readThread == thisThread) {
 				read();
 				try {
+
+					//线程睡眠的时间，为图表中设置的间隔时间
 					Thread.sleep(intervalRead);
 /*					synchronized (this) {
 						while (readThread == thisThread && threadSuspended)
@@ -144,6 +147,8 @@ public class ServiceReader extends Service {
 	
 	@Override
 	public void onCreate() {
+
+		//创建数据列表长度为2000的对象
 		cpuTotal = new ArrayList<Float>(maxSamples);
 		cpuAM = new ArrayList<Float>(maxSamples);
 		memoryAM = new ArrayList<Integer>(maxSamples);
@@ -181,23 +186,31 @@ public class ServiceReader extends Service {
 		PendingIntent pIStartRecord = PendingIntent.getBroadcast(this, 0, new Intent(C.actionStartRecord), PendingIntent.FLAG_UPDATE_CURRENT);
 		PendingIntent pIStopRecord = PendingIntent.getBroadcast(this, 0, new Intent(C.actionStopRecord), PendingIntent.FLAG_UPDATE_CURRENT);
 		PendingIntent pIClose = PendingIntent.getBroadcast(this, 0, new Intent(C.actionClose), PendingIntent.FLAG_UPDATE_CURRENT);
-		
+
+
+		//通知栏函数在Service中写
 		mNotificationRead = new NotificationCompat.Builder(this)
 				.setContentTitle(getString(R.string.app_name))
+				//String:Reading values in the background
 				.setContentText(getString(R.string.notify_read2))
 //				.setTicker(getString(R.string.notify_read))
 				.setSmallIcon(R.drawable.icon_bw)
 				.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.icon, null))
+				//设置通知来到的时间
 				.setWhen(0) // Removes the time
+				//当点击“全部清除”选项时，通知栏不会被清除
 				.setOngoing(true)
 				.setContentIntent(contentIntent) // PendingIntent.getActivity(this, 0, new Intent(this, ActivityMain.class), 0)
 				.setStyle(new NotificationCompat.BigTextStyle().bigText(getString(R.string.notify_read2)))
 				.addAction(R.drawable.icon_circle_sb, getString(R.string.menu_record), pIStartRecord)
+				//String :menu_close:Close
+				// 添加动作，类似于button的点击事件，有两个，一个是记录一个是关闭应用程序，第三个参数为PendIntent延时意图
 				.addAction(R.drawable.icon_times_ai, getString(R.string.menu_close), pIClose)
 				.build();
 		
 		mNotificationRecord = new NotificationCompat.Builder(this)
 				.setContentTitle(getString(R.string.app_name))
+				//String:Recording values in the background
 				.setContentText(getString(R.string.notify_record2))
 				.setTicker(getString(R.string.notify_record))
 				.setSmallIcon(R.drawable.icon_recording_bw)
@@ -211,7 +224,9 @@ public class ServiceReader extends Service {
 				.build();
 		
 //		mNM.notify(0, mNotificationRead);
-		startForeground(10, mNotificationRead); // If not the AM service will be easily killed when a heavy-use memory app (like a browser or Google Maps) goes onto the foreground
+		startForeground(10, mNotificationRead);
+		// If not the AM service will be easily killed when a heavy-use memory app
+		// (like a browser or Google Maps) goes onto the foreground
 	}
 	
 	
@@ -247,11 +262,11 @@ public class ServiceReader extends Service {
 	public IBinder onBind(Intent intent) {
 		return new ServiceReaderDataBinder();
 	}
-	
-	
-	
-	
-	
+
+
+	/**
+	 * 读取信息
+	 */
 	@SuppressLint("NewApi")
 	@SuppressWarnings("unchecked")
 	private void read() {
@@ -261,6 +276,10 @@ public class ServiceReader extends Service {
 			while (s != null) {
 				// Memory is limited as far as we know
 				while (memFree.size() >= maxSamples) {
+
+					//remove 函数删除此列表中指定位置的元素（可选操作）。
+					// 将任何随后的元素向左移（从其索引中减去一个元素）。
+					// 返回从列表中删除的元素。
 					cpuTotal.remove(cpuTotal.size() - 1);
 					cpuAM.remove(cpuAM.size() - 1);
 					memoryAM.remove(memoryAM.size() - 1);
@@ -291,16 +310,32 @@ public class ServiceReader extends Service {
 							l.remove(l.size() - 1);
 					}
 				}
-				
+
+				//对/proc/meminfo中的String 信息进行处理，
 				// Memory values. Percentages are calculated in the ActivityMain class.
 				if (firstRead && s.startsWith("MemTotal:")) {
+
+					//split函数中的第二个参数“limit”指的是	限制返回数组中的元素个数
 					memTotal = Integer.parseInt(s.split("[ ]+", 3)[1]);
+
+					Log.i(TAG,"memTotal:"+String.valueOf(memTotal));
+					//java.lang.ArrayIndexOutOfBoundsException: length=2; inex=2
+					//Log.i(TAG,"memTotal`:"+Integer.parseInt(s.split("[ ]+", 2)[1]));
+					//split将字符串s通过正则表达式，分为两个部分存在[0]，[1]中，其中[0]中存储着字符串，“MemTotal”，[1]中存储"3897120"
+					//正则表达式"[空格 ]+"，其中"+"加号，表示一个或多个，见《JAVA编程思想》第四版299页，关于中括号的内容参见298页
+					//limit 表示将字符串s分割成字符串的数量！！！,本例仅分割成成两个部分，一个是"MemTotal"和“37878Kb”
+					//因为数组的大小最后一位用来存储字符结尾‘\0’，所以在设置分割数量时，需要设置为3
+					Log.i(TAG,"memTotal`:"+Integer.parseInt(s.split("[ ]+", 3)[1])
+							+Boolean.valueOf(s.split("[ ]+",3)[2]));
+					//java.lang.NumberFormatException: Invalid int: "MemTotal:        3897120 kB"
+					Log.i(TAG,"memTotal`:"+s);
 					firstRead = false;
 				} else if (s.startsWith("MemFree:"))
 					memFree.add(0, s.split("[ ]+", 3)[1]);
 				else if (s.startsWith("Cached:"))
 					cached.add(0, s.split("[ ]+", 3)[1]);
-				
+
+				//逐行读取
 				s = reader.readLine();
 			}
 			reader.close();
@@ -451,17 +486,21 @@ public class ServiceReader extends Service {
 			return 0;
 		else return percentage;
 	}
-	
-	
-	
-	
-	
+
+
+	/**
+	 * 记录数据
+	 */
 	@SuppressWarnings("unchecked")
 	private void record() {
 		if (mW == null) {
 			File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/AnotherMonitor");
 			dir.mkdirs();
-			mFile = new File(dir, new StringBuilder().append(getString(R.string.app_name)).append("Record-").append(getDate()).append(".csv").toString());
+			/**
+			 * 创建后缀名为csv的文件
+			 */
+			mFile = new File(dir, new StringBuilder().append(getString(R.string.app_name)).append("Record-").
+					append(getDate()).append(".csv").toString());
 			
 			try {
 				mW = new BufferedWriter(new FileWriter(mFile));
@@ -473,6 +512,9 @@ public class ServiceReader extends Service {
 		
 		try {
 			if (topRow) {
+				/**
+				 * sb   设置表格的头，第一行与第二行的信息
+				 */
 				StringBuilder sb = new StringBuilder()
 						.append(getString(R.string.app_name))
 						.append(" Record,Starting date and time:,")
@@ -481,7 +523,19 @@ public class ServiceReader extends Service {
 						.append(intervalRead)
 						.append(",MemTotal (kB),")
 						.append(memTotal)
-						.append("\nTotal CPU usage (%),AnotherMonitor (Pid ").append(Process.myPid()).append(") CPU usage (%),AnotherMonitor Memory (kB)");
+						.append("\nTotal CPU usage (%),AnotherMonitor (Pid ").append(Process.myPid()).
+								append(") CPU usage (%),AnotherMonitor Memory (kB)");
+
+				/**
+				 *   是否选择了检测的进程（获取Pid值），以及列表是否为空
+				 *   若列表中有值，则通过for循环取出列表中数据，数据以Map形式存储
+				 *   private List<Map<String, Object>> mListSelected; // Integer		 C.pId
+				 														// String		 C.pName
+				 														// Integer	 C.work
+				 														// Integer	 C.workBefore
+				 														// List<Sring> C.finalValue
+
+				 */
 				if (mListSelected != null && !mListSelected.isEmpty())
 					for (Map<String, Object> p : mListSelected)
 						sb.append(",").append(p.get(C.pAppName)).append(" (Pid ").append(p.get(C.pId)).append(") CPU usage (%)")
@@ -493,7 +547,10 @@ public class ServiceReader extends Service {
 				mNM.notify(10, mNotificationRecord);
 				topRow = false;
 			}
-			
+
+			/**
+			 * 重新创建一个String Builder
+			 */
 			StringBuilder sb = new StringBuilder()
 					.append("\n").append(cpuTotal.get(0))
 					.append(",").append(cpuAM.get(0))
@@ -523,7 +580,8 @@ public class ServiceReader extends Service {
 	
 	
 	void startRecord() {
-		if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+		if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+				== PackageManager.PERMISSION_DENIED) {
 			Toast.makeText(this, getString(R.string.w_main_storage_permission), Toast.LENGTH_LONG).show();
 			return;
 		}
@@ -535,6 +593,7 @@ public class ServiceReader extends Service {
 		recording = false;
 		sendBroadcast(new Intent(C.actionSetIconRecord));
 		try {
+			//Flushes the stream 刷新下数据，再关闭流窗口
 			mW.flush();
 			mW.close();
 			mW = null;
@@ -552,6 +611,7 @@ public class ServiceReader extends Service {
 			Toast.makeText(this, getString(R.string.notify_toast_error) + " " + e.getMessage(), Toast.LENGTH_LONG).show();
 		}
 		topRow = true;
+		//停止记录时，恢复状态栏信息
 		mNM.notify(10, mNotificationRead);
 	}
 	
@@ -578,7 +638,8 @@ public class ServiceReader extends Service {
 					Toast.makeText(ServiceReader.this, getString(R.string.notify_toast_error_2) + " " + e.getMessage(), Toast.LENGTH_LONG).show();
 				}
 			});
-			
+
+			//出错时，会重置状态栏到默认状态
 			mNM.notify(10, mNotificationRead);
 		}
 	}
@@ -666,7 +727,7 @@ public class ServiceReader extends Service {
 	List<Float> getCPUAMP() {
 		return cpuAM;
 	}
-	
+
 	List<Integer> getMemoryAM() {
 		return memoryAM;
 	}
