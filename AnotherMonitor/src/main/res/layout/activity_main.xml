@@ -6,7 +6,8 @@
 	    android:layout_height="match_parent"
 	    android:background="@color/GrayMyPlaces"
 	    android:orientation="vertical" >
-	    	
+
+		//标题栏
 	    <LinearLayout
 	        android:id="@+id/LTopBar"
 	        android:layout_width="match_parent"
@@ -42,12 +43,16 @@
 		        android:src="@drawable/button_menu" />
 	        
 	    </LinearLayout>
-		
+
+
+		//2dp的分割栏
   	    <FrameLayout
 	        android:layout_width="match_parent"
 	        android:layout_height="2dp"
 	        android:background="@color/bgTopBarUnderline" />
- 	    
+
+
+
  	    <LinearLayout
 	    	style="@style/MainWindowArrangement"
 	        android:layout_width="match_parent"
@@ -69,7 +74,8 @@
 			            android:orientation="vertical"
 			            android:gravity="center"
 			        	android:paddingTop="15dp" >
-			            
+
+						//Processes一栏
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:layout_marginBottom="5dp"
@@ -105,7 +111,8 @@
 				                android:textAllCaps="false"
 				                android:maxLines="1" />
 			            </LinearLayout>
-			
+
+						//Total CPU usage一栏
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:id="@+id/LCPUTotal" >
@@ -129,11 +136,13 @@
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:id="@+id/LCPUAM" >
-			
+
+							//左边的开关，停止按钮
 					        <ImageView
 			                	style="@style/ParameterStatusIcon"
 			                    android:id="@+id/IVCPUAMPS" />
 
+							//应用图标
 						    <ImageView
 						        android:layout_width="30dp"
 						        android:layout_height="30dp"
@@ -143,7 +152,8 @@
 							<LinearLayout
 							    style="@style/FirstColumn"
 							  	android:orientation="vertical"  >
-						
+
+								//应用名+利用率
 							    <TextView
 									android:layout_width="match_parent"
 									android:layout_height="wrap_content"
@@ -151,7 +161,8 @@
 									android:textSize="16sp"
 									android:textStyle="bold"
 									android:textColor="@color/process2" />
-							
+
+								//pid
 							    <TextView
 									android:layout_width="match_parent"
 									android:layout_height="wrap_content"
@@ -206,7 +217,9 @@
 			                android:text="@string/w_main_choose_process"
 			                android:textSize="18sp"
 			                android:textAllCaps="false" />
-			            
+
+
+						//Memory一栏
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:layout_marginTop="10dp"
@@ -240,31 +253,36 @@
 				                android:includeFontPadding="false"
 				                android:textAllCaps="false" />
 			            </LinearLayout>
-			
+
+						//内存使用情况
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:id="@+id/LMemUsed" >
-			
+
+							//开关图标
 					        <ImageView
 			                	style="@style/ParameterStatusIcon"
 			                    android:id="@+id/IVMemUsedS" />
-			
+
+							//Mem used数
 			                <TextView
 			                	style="@style/FirstColumn"
 			                    android:text="@string/p_memused"
 			                    android:textColor="@color/Orange" />
-			
+
+							//显示kb数
 			                <TextView
 			                	style="@style/SecondColumn"
 			                    android:id="@+id/TVMemUsed"
 			                    android:textColor="@color/Orange" />
-			
+
+							//利用百分比
 			                <TextView
 			                	style="@style/ThirdColumn"
 			                    android:id="@+id/TVMemUsedP"
 			                    android:textColor="@color/Orange" />
 			            </LinearLayout>
-			
+						//内存剩余情况
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:id="@+id/LMemAvailable" >
@@ -288,7 +306,7 @@
 			                    android:id="@+id/TVMemAvailableP"
 			                    android:textColor="@color/Magenta" />
 			            </LinearLayout>
-			
+						//内存free
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:id="@+id/LMemFree" >
@@ -312,7 +330,8 @@
 			                    android:id="@+id/TVMemFreeP"
 			                    android:textColor="#804000" />
 			            </LinearLayout>
-			
+
+						//缓存数
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:id="@+id/LCached" >
@@ -336,7 +355,7 @@
 			                    android:id="@+id/TVCachedP"
 			                    android:textColor="@color/blue" />
 			            </LinearLayout>
-			
+						//门限
 			            <LinearLayout
 			                style="@style/ParameterRow"
 			                android:id="@+id/LThreshold"
@@ -408,6 +427,8 @@
 	
 	</LinearLayout>
 
+
+	//设置读取时间间隔，更新间隔，图表间隔
 	<FrameLayout
 		android:id="@+id/LSettings"
         android:layout_width="match_parent"
@@ -419,19 +440,22 @@
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content"
         	android:layout_gravity="center|bottom" /> -->
-				    
+
+		//弹出窗口采用线性布局，颜色背景统一
 		<LinearLayout
 	        android:layout_width="match_parent"
 	        android:layout_height="match_parent"
 	    	android:layout_gravity="top"
 		    android:orientation="vertical"
 			android:background="@color/bgSettings" >
-	
+
+			//弹出窗口的最上面，2dp的浅色分割线
 	 	    <FrameLayout
 		        android:layout_width="match_parent"
 		        android:layout_height="2dp"
 		        android:background="@color/bgSettingsUnderline" />
-	
+
+			//三角箭头
 			<FrameLayout
 				android:id="@+id/LOK"
 		        android:layout_width="match_parent"
@@ -454,7 +478,8 @@
 		        android:layout_gravity="top"
 		        android:paddingLeft="35dp"
 		        android:paddingRight="35dp" >
-	
+
+				//read interval
 	            <TextView
 	                style="@style/TVInterval"
 				    android:id="@+id/TVIntervalRead"
@@ -463,7 +488,7 @@
 				<SeekBar
 	                style="@style/SBInterval"
 				    android:id="@+id/SBIntervalRead" />
-	
+				//update interval
 	            <TextView
 	                style="@style/TVInterval"
 				    android:id="@+id/TVIntervalUpdate" />
@@ -471,7 +496,8 @@
 				<SeekBar
 	                style="@style/SBInterval"
 				    android:id="@+id/SBIntervalUpdate" />
-	
+
+				//graph interval with
 	            <TextView
 	                style="@style/TVInterval"
 				    android:id="@+id/TVIntervalWidth" />
@@ -486,7 +512,8 @@
 		</LinearLayout>
     
 	</FrameLayout>
-	    
+
+	//欢迎界面
     <ViewStub
 	    android:id="@+id/VSWelcome"
 	    android:layout="@layout/layer_welcome"
@@ -494,7 +521,8 @@
 	    android:layout_height="wrap_content"
 		android:layout_gravity="bottom|center"
 		android:layout_marginBottom="35dp" />
-	    
+
+	//初次使用，弹出
     <ViewStub
 	    android:id="@+id/VSFirstTimeProcesses"
 	    android:layout="@layout/layer_hint"
@@ -502,7 +530,9 @@
 	    android:layout_height="wrap_content"
 		android:layout_gravity="bottom|center"
 		android:layout_marginBottom="35dp" />
-    
+
+
+	//对应用的评价
     <ViewStub
         style="@style/LFeedbackLayerWidth"
 	    android:id="@+id/VSFeedback"
